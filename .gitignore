@@ -1,0 +1,2 @@
+# don't include these files in the git archive
+cmost.acf

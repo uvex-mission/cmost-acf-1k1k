@@ -1,0 +1,285 @@
+/* -*- C -*- */
+/** ---------------------------------------------------------------------------
+ * @file     cmost.wavform
+ * @brief    CMOST timing file, rules for waveform generation and scripting
+ * @author   Stephen Kaye
+ * @date     2020-01-08 Initial creation
+ * @modified 
+ *
+ * syntax (is case sensitive):
+ *
+ * WAVEFORM waveformlabel { rules }
+ *
+ * where rules (enclosed in curly braces) are as follows:
+ *
+ * [time]: [=timelabel] SET signallabel TO level;
+ *
+ * time: at least one time label is required, followed by colon
+ *       (if omitted then SET... lines are all at the same time as previous time)
+ *       arithmetic operations are allowed for time
+ *       units are allowed to follow numbers, E.G. ns, us, ms
+ *       ".+" means to add to the previous time
+ *
+ * =timelabel is an optional label for this time, which can be used elsewhere
+ *
+ * SET signallabel TO level; 
+ * is required and must end with a semi-colon
+ * signallabel and level can be defined anywhere
+ *
+ */
+
+#define clockfreq  100000000                      /* 100 MHz master clock frequency in Hz */
+#define sec        *(clockfreq)                   /* clock cycles per second   */
+#define ms         *(clockfreq/1000)              /* clock cycles per millisec */
+#define us         *(clockfreq/1000000)           /* clock cycles per microsec */
+#define ns         *(clockfreq/1000000000)          /* clock cycles per nanosecond */
+#define clicks	   *(clockfreq/100000000)	  /* clock cycles per nanosecond */
+
+/* Timing defines */
+/* Generic timing parameters */
+#define TICK	        #eval  1 clicks		  /* 10 nsec */
+#define 1ms	        #eval  1 ms
+#define 1us             #eval  1 us
+#define 2us             #eval  2 us
+#define 20us            #eval 20 us
+#define 25us            #eval 25 us
+#define 10ms            #eval 10 ms
+#define 10us            #eval 10 us
+/* Timing specific to CMOS waveform */
+#define TGWidth         #eval 10 us /*  10 us */
+#define TGWidth_RR	#eval 10 us
+#define ADRRstWidth     #eval  1 us
+#define ADRWidth        25          /* Nominal YLatch is 250 ns wide */
+#define ADRXWidth        5          /* Nominal XLatch is 250 ns wide */
+/* Logical state defines */
+#define High		       1
+#define Low		       0
+
+/* Bias Level defines */
+#define BiasHigh             3.3
+#define BiasLow                0
+
+#define IPixPadOff		3.3
+#define IPixPadOn		1.8
+/* Vestigial definition  */
+#define PixelT                84
+
+/* This resets the X and Y address counters in the FPGA */
+WAVEFORM wResetXYAddr {
+ 0:                  SET XY_ADDR_RESET TO High;
+ .+ADRRstWidth:      SET XY_ADDR_RESET TO Low;
+}
+
+/* All of the X Blocks should be anbled, but I believ this is an FPGA function */
+/*WAVEFORM wSetAllXBlocks {
+/* 0:                  RETURN;
+/*}*/
+/* Change DC Bias Value */
+WAVEFORM SetIPIXOff {
+SET I_PIXEL_PAD TO IPixPadOff;
+}
+WAVEFORM SetIPIXOn {
+SET I_PIXEL_PAD TO IPixPadOn;
+}
+
+/* Set and Reset waveforms */
+WAVEFORM wSetRowClock {
+ 0:                  SET ROW_SELECT  TO High;
+}
+
+WAVEFORM wLowRowClock {
+ 0:                  SET ROW_SELECT  TO Low;
+}
+
+WAVEFORM wSetClampClock {
+ 0:                  SET CLAMP_CLOCK TO High;
+}
+
+WAVEFORM wLowClampClock {
+ 0:                  SET CLAMP_CLOCK TO Low;
+}
+
+WAVEFORM wSetResetClock {
+ 0:                  SET RESET_CLOCK TO High;
+}
+
+WAVEFORM wLowResetClock {
+ 0:                  SET RESET_CLOCK TO Low;
+}
+
+WAVEFORM wSetMIMClock {
+ 0:                  SET MIM_CLOCK   TO High;
+}
+
+WAVEFORM wLowMIMClock {
+ 0:                  SET MIM_CLOCK   TO Low;
+}
+
+WAVEFORM wSetTGClock {
+ 0:                  SET TG          TO High;
+}
+
+WAVEFORM wLowTGClock {
+ 0:                  SET TG          TO Low;
+}
+
+WAVEFORM wSetSnapClock {
+ 0:                  SET SNAP        TO High;
+}
+
+WAVEFORM wLowSnapClock {
+ 0:                  SET SNAP        TO Low;
+}
+
+WAVEFORM wSetSampCaps1 {
+ 0:                  SET CH1_A_SAMPLE TO High;
+                     SET CH1_B_SAMPLE TO High;
+}
+
+WAVEFORM wLowSampCaps1 {
+ 0:                  SET CH1_A_SAMPLE TO Low;
+                     SET CH1_B_SAMPLE TO Low;
+}
+
+WAVEFORM wSetSampCaps2 {
+ 0:                  SET CH2_A_SAMPLE TO High;
+                     SET CH2_B_SAMPLE TO High;
+}
+
+WAVEFORM wLowSampCaps2 {
+ 0:                  SET CH2_A_SAMPLE TO Low;
+                     SET CH2_B_SAMPLE TO Low;
+}
+
+WAVEFORM wSetSampA1 {
+ 0:                  SET CH1_A_SAMPLE TO High;
+}
+
+WAVEFORM wSetSampA2 {
+ 0:                  SET CH2_A_SAMPLE TO High;
+}
+
+WAVEFORM wLowSampA1 {
+ 0:                  SET CH1_A_SAMPLE TO Low;
+}
+
+WAVEFORM wLowSampA2 {
+ 0:                  SET CH2_A_SAMPLE TO Low;
+}
+
+
+WAVEFORM wSetSampB1 {
+ 0:                  SET CH1_B_SAMPLE TO High;
+}
+
+WAVEFORM wSetSampB2 {
+ 0:                  SET CH2_B_SAMPLE TO High;
+}
+
+WAVEFORM wLowSampB1 {
+ 0:                  SET CH1_B_SAMPLE TO Low;
+}
+
+WAVEFORM wLowSampB2 {
+ 0:                  SET CH2_B_SAMPLE TO Low;
+}
+
+
+
+
+
+WAVEFORM wSetRSTMIMClock {
+ 0:                  SET RESET_MIM   TO High;
+}
+
+WAVEFORM wLowRSTMIMClock {
+ 0:                  SET RESET_MIM   TO Low;
+}
+
+WAVEFORM wSetDarkPixEn {
+ 0:                  SET DARK_PIX_EN   TO High;
+}
+
+WAVEFORM wLowDarkPixEn {
+ 0:                  SET DARK_PIX_EN   TO Low;
+}
+
+
+
+/* Pulse waveforms */
+WAVEFORM wTGPulse {
+ 0:                  SET TG          TO High;
+  .+TGWidth:         SET TG          TO Low;
+}
+
+WAVEFORM wTGPulse_RR {
+ 0:		     SET TG	     TO High;
+ .+TGWidth_RR:	     SET TG	     TO Low;
+}
+
+WAVEFORM wPulseYAddr {
+ 0:                  SET Y_ADDR_CLOCK TO High;
+  .+ADRWidth:        SET Y_ADDR_CLOCK TO Low;
+}
+
+WAVEFORM wPulseXAddr {
+ 0:                  SET X_ADDR_CLOCK TO High;
+  .+ADRXWidth:        SET X_ADDR_CLOCK TO Low;
+}
+
+WAVEFORM wSetXAddr {
+ 0:                  SET X_ADDR_CLOCK TO High;
+}
+
+
+/* For Easter Egg for calculating raw buffer space */
+/* Vestigial for now, but useful.  Keep for historical memory */
+WAVEFORM RawPixel {
+  PixelT:          RETURN;
+}
+
+/* Various wait routines */
+WAVEFORM wDelay1us {
+ 1us:		   RETURN;
+}
+
+WAVEFORM wDelay10ns {
+}
+
+WAVEFORM wDelay1ms {
+ 1ms:               RETURN;
+}
+
+
+
+/*****************************************/
+/* Here are the control signal waveforms */
+/*****************************************/
+WAVEFORM wFrame {
+ 0:			SET FRAME TO High;
+}
+
+WAVEFORM wLine {
+ 0:			SET LINE TO High;
+}
+
+WAVEFORM wPixel {
+ 0:			SET PIXEL   TO High;
+ .+TICK:		SET PIXEL   TO Low;
+			SET FRAME   TO Low;
+			SET LINE    TO Low;
+}
+
+WAVEFORM ADClamp {
+ 0:			SET AD5     TO High;
+                        SET AD6     TO High;
+                        SET AD7     TO High;
+                        SET AD8     TO High;
+}
+
+WAVEFORM ADClamp_ {
+ 0:			SET AD5     TO Low;
+                        SET AD6     TO Low;
+                        SET AD7     TO Low;
+                        SET AD8     TO Low;
+}

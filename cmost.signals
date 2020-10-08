@@ -1,0 +1,95 @@
+/* -*- C -*- */
+/** ---------------------------------------------------------------------------
+ * @file     cmost.signals
+ * @brief    cmost signal names and module/channel assignments
+ * @author   Stephen Kaye
+ * @date     2020-01-08 Initial creation
+ * @modified 
+ * 
+ * syntax:
+ *
+ * #define signallabel slot : channel
+ *
+ * where signallabel   is any ASCII text string to identify the signal name
+ *       slot          is the slot number containing the module,
+ *       channel       is the channel number on the module
+ * 
+ * Combinations of signals can also be made by creating a comma-separated
+ * list enclosed in square brackets as follows:
+ *
+ * #define newlabel [ signallabel, signallabel [, signallabel] ]
+ *
+ * where newlabel    is any ASCII text string to define a new signal
+ *       signallabel is any signal already defined above
+ *
+ * any number can be combined in a comma-separated list between square brackets,
+ * or a single signal can be defined in square brackets to effectively asign
+ * a different name to the signal
+ *
+ */
+
+/* These are the control signals needed to */
+/* fire the shutter and get a frame of data */
+#define SHUTTER	0 : 1   /* INT signal from the backplane - is there a shutter?	*/
+#define FRAME	0 : 2   /* FRAME signal from the backplane			*/
+#define LINE	0 : 3   /* LINE signal from the backplane			*/
+#define PIXEL	0 : 4   /* PIXEL signal from the backplane			*/
+
+/* The hooks necessary to be able to clamp and unclamp the ADC board channels */
+#define AD5	5 : 1   /* AD board in slot 5.  Access to the clamp	*/
+#define AD6     6 : 1   /* AD board in slot 6.  Access to the clamp     */
+#define AD7     7 : 1   /* AD board in slot 7.  Access to the clamp     */
+#define AD8     8 : 1   /* Ad board in slot 8.  Access to the clamp     */
+
+
+/* These are the biases which can now be commanded in states                       */
+/* Add the DIO channels (8) to the end to make this a LVXBias card                 */
+#define VHIGH_TG          9 : 1  /* Pixel reset voltage reference (sense node)     */
+#define VHIGH_RST         9 : 2  /* Clamp offset voltage (CDS clamp cap reset)     */
+#define VHIGH_MIM         9 : 3  /* CDS Sample capacior driver enable (clock sig)  */
+#define I_PREBUF_PAD      9 : 4  /* CDS output source follower enable (clock sig)  */
+#define I_CDS_PAD         9 : 5  /* Enables raw signal (clock sig)                 */
+#define PIX_VREF          9 : 6  /* Enables the single muxed output (clock sig)    */
+#define VHIGH_ROW         9 : 7  /* Reset clock low rail voltage                   */
+/*#define SPARE             9 : 8 */ /* Reset clock high rail voltage                  */
+/*#define VLOW_MIM          9:  9 */ /* MIM capacitor clock low rail voltage           */
+/*#define VHIGH_MIM         9 : 10*/ /* MIM capacitor clock high rail voltage          */
+/*#define VLOW_TG           9 : 11*/ /* Transfer Gate clock low rail voltage           */
+/*#define VHIGH_TG          9 : 12*/ /* Transfer Gate clock high rail voltage          */
+#define VLOW_TG           9 : 13 /* Row clock low rail voltage                     */
+#define VLOW_RST          9 : 14 /* Row clock high rail voltage                    */
+#define VLOW_MIM          9 : 15 /* Limits the signal bandwidth (clock sig)        */
+#define I_PIXEL_PAD       9 : 16 /* Pixel SF current mirror voltage                */
+#define CLAMP_OFFSET      9 : 17 /* CDS clamp SF current mirror voltage            */
+#define VLOW_ROW          9 : 18 /* CDS sample SF current mirror voltage           */
+#define PIX_SUPPLY        9 : 26 /* Pix supply voltage */
+#define VDDA_PULLUP       9 : 28
+#define VDD               9 : 29
+/*#define DIO1              9 : 31*/ /* DIO 1 */
+/*#define DIO2              9 : 32*/ /* DIO 2 */
+/*#define DIO3              9 : 33*/ /* DIO 3 */
+/*#define DIO4              9 : 34*/ /* DIO 4 */
+/*#define DIO5              9 : 35*/ /* DIO 5 */
+/*#define DIO6              9 : 36*/ /* DIO 6 */
+/*#define DIO7              9 : 37*/ /* DIO 7 */
+/*#define DIO8              9 : 38*/ /* DIO 8 */
+
+
+/* These are the clock signals which come from the LVDS board           */
+/* LVDS board slot is undefined, but we'll have it set soon             */
+#define RESET_CLOCK    	10 : 1  /* Reset clock for reset in 5TPPD output node 	   */
+#define MIM_CLOCK     	10 : 2  /* MIM clock for gain mode selecr in 5TPPD output  */
+#define TG      	10 : 3  /* Transfer Gate to move charge to sense node      */
+#define SNAP     	10 : 4  /* Enables global application of clocks       	   */
+#define ROW_SELECT	10 : 5  /* Enables the column video for selected row   	   */
+#define RESET_MIM	10 : 6  /* Holds sense node of all pixels in reset     	   */
+#define CLAMP_CLOCK	10 : 7  /* CDS clamp cap set to diff of voltage and OFFSET */
+#define CH1_A_SAMPLE	10 : 8  /* Save signal on capacitor channel 1         	   */
+#define CH1_B_SAMPLE    10 : 9  /* Send Channel 1 cap signal to CDS output         */
+#define CH2_A_SAMPLE    10 : 10 /* Save signal on capacitor channel 2              */
+#define CH2_B_SAMPLE    10 : 11 /* Send Channel 2 cap signal to CDS output         */
+#define XY_ADDR_RESET   10 : 12 /* Reset both X and Y address registers (FPGA)     */
+#define X_ADDR_CLOCK    10 : 13 /* Clock the X address counter (FPGA)              */
+#define Y_ADDR_CLOCK    10 : 14 /* Clock the Y address counter (FPGA)              */
+#define DARK_PIX_EN     10 : 15 /* Enable the 8 rows of dark pixels                */
+#define SPARE_LVDS      10 : 16 /* Spare LVDS singal                               */
