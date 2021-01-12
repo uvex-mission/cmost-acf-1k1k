@@ -3,26 +3,26 @@
 /* Nominal values for the biases */
 #define PVREF          3.0
 #define CLOFFSET       2.8
-#define CLSELECT       0.0  /* logic level for RAW output            */
-#define SASELECT       0.0  /* logic level for RAW output            */
-#define RAWENABLE      3.0  /* logic level for RAW output            */
-#define SINGLEOUT      0.0  /* logic level for NOT single output mux */
+#define CLSELECT       0.0  
+#define SASELECT       0.0  
+#define RAWENABLE      3.0  
+#define SINGLEOUT      0.0  
 #define VLOWRST        0.0
 #define VHIGHRST       3.3
 #define VLOWMIM        0.0
 #define VHIGHMIM       3.3
-#define VLOWTG         -0.5  /* will be negative when we get lvbias   */
+#define VLOWTG         -0.5  /* negative */
 #define VHIGHTG        2.5
 #define VLOWROW        0.0
-#define VHIGHROW       4.5
-#define BWLIMIT        0.0  /* logic level for full bandwidth        */
+#define VHIGHROW       4.5  /* higher than datasheet because of ROIX issue */
+#define BWLIMIT        0.0  
 #define IPIXPAD        1.8
 #define ICDSPAD        1.7
 #define IBUFPAD        0.7
 #define PIXSUPPLY      3.3
 #define VDDA           3.3
 #define VDD            3.3
-#define VSPARE         0.0  /* set the spare voltages to 0           */
+#define VSPARE         0.0  
 
 
 SLOT 5 ad {

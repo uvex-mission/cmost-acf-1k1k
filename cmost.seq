@@ -2,7 +2,7 @@
 /** ---------------------------------------------------------------------------
  * @file     cmost.seq
  * @brief    sequence file for CMOS imager 4k x 2k
- * @author   Stephen Kaye
+ * @author   Stephen Kaye and Timothee Greffe
  * @date     2020-01-08 Initial creation
  * @modified 
  *
@@ -21,13 +21,6 @@ param mode_RR=0
 param Abort=0
 param DarkRows=_DARK_ROWS
 param MaxRows=_MAX_ROWS
-param MaxCols=_MAX_COLS
-param RawFullBW=0
-param RawSlowBW=0
-param CDSFullBW=0
-param CDSSlowBW=0
-param MuxFullBW=0
-param MuxSlowBW=0
 param HighGain=1
 param LowGain=0
 param numsamples=_NUM_CDS_SAMPLES
@@ -35,7 +28,6 @@ param TPixel_hold=5
   
 /* There are 4 parallel outputs per 1024 pixel block.  The x address       */
 /* increases to 256 and then resets, this should cover all of the columns. */
-
 
 
 /** ---------------------------------------------------------------------------
