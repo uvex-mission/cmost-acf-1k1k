@@ -65,3 +65,4 @@ F_TMP = $(@F)_TMP
 		$(I2A) - > $(@F).acf
 	$(eval MODEFILE := $(shell $(SCAN_MODEFILE)))
 	@$(MODEGEN) $(MODEFILE) $(@F).acf
+	@$(WDLPATH)/insert_hash $(@F).acf
