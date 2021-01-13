@@ -13,6 +13,7 @@
 # @modified 2016-04-20 read CDS_FILE and MODULE_FILE from .conf
 # @modified 2017-02-08 added modegen
 # @modified 2017-11-09 remove copying of acf files to camera computers
+# @modified 2020-12-21 added insert_hash
 #
 # This Makefile uses the general preprocessor GPP 2.24 for macro processing.
 # It also requires the ini2acf.pl Perl script for creating an Archon acf file.
@@ -20,11 +21,33 @@
 # -----------------------------------------------------------------------------
 #
 
+# Copyright (C) <2018> California Institute of Technology
+# Software written by: <Dave Hale and Peter Mao>
+# 
+#     This program is part of the Waveform Definition Language (WDL) developed
+#     for ZTF.  This program is free software: you can redistribute it and/or
+#     modify it under the terms of the GNU General Public License as published
+#     by the Free Software Foundation, either version 3 of the License, or
+#     any later version.
+# 
+#     This program is distributed in the hope that it will be useful,
+#     but WITHOUT ANY WARRANTY; without even the implied warranty of
+#     MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#     GNU General Public License for more details.
+# 
+#     Please see the GNU General Public License at:
+#     <http://www.gnu.org/licenses/>.
+# 
+#     Report any bugs or suggested improvements to:
+# 
+#     David Hale <dhale@caltech.edu> or
+#     Stephen Kaye <skaye@caltech.edu>
+
 GPP       = /usr/local/bin/gpp
 WDLPATH   = $(HOME)/Software/wdl
 ACFPATH   = $(HOME)/Software/acf
 
-PLOT      = False # True   # show waveform plots by default, True | False
+PLOT      = False   # show waveform plots by default, True | False
 GFLAGS    = +c "/*" "*/" +c "//" "\n" +c "\\\n" ""
 SEQPARSER = $(WDLPATH)/seqParserDriver.py
 INCPARSER = $(WDLPATH)/incParserDriver.py
@@ -65,4 +88,9 @@ F_TMP = $(@F)_TMP
 		$(I2A) - > $(@F).acf
 	$(eval MODEFILE := $(shell $(SCAN_MODEFILE)))
 	@$(MODEGEN) $(MODEFILE) $(@F).acf
-	@$(WDLPATH)/insert_hash $(@F).acf
+	@if [ -d ".git" ]; \
+	then echo "inserting REV keyword ..."; $(WDLPATH)/insert_hash $(@F).acf; \
+	else echo "not a git archive, skipping REV keyword"; \
+	fi
+	@echo "done"
+

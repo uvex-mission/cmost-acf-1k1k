@@ -21,11 +21,11 @@ param mode_RR=0
 param Abort=0
 param DarkRows=_DARK_ROWS
 param MaxRows=_MAX_ROWS
-param HighGain=1
-param LowGain=0
+param GainLow=0
+param GainHigh=1
 param numsamples=_NUM_CDS_SAMPLES
 param TPixel_hold=5
-  
+
 /* There are 4 parallel outputs per 1024 pixel block.  The x address       */
 /* increases to 256 and then resets, this should cover all of the columns. */
 
@@ -36,7 +36,6 @@ param TPixel_hold=5
  *
  */
 SEQUENCE SetupCmos {
- /* Is there something we need to setup in the CMOS imager? */
   wSetRSTMIMClock();  /* This keeps the other rows out of reset */
   wLowSampCaps1();    /* Not using CDS, so leave sample capacitors disconnected */
   wLowSampCaps2();    /* Not ping pong operation, so leave these low */
@@ -46,8 +45,7 @@ SEQUENCE SetupCmos {
 }
 
 /* And we'll fall into the wait for exposure routine                      */
-/* We will be doing a rolling shutter. But we will do a global reset just */
-/* before exposure.                                                       */
+/* We will be doing a rolling shutter */
 
 
 /** ---------------------------------------------------------------------------
@@ -57,17 +55,20 @@ SEQUENCE SetupCmos {
 
 SEQUENCE WaitForExpose {
   if Expose SelectReadoutMode();
- GlobalReset();/* Apply Global Reset to the Array */          
+  GlobalReset();/* Apply Global Reset to the Array */          
   GOTO WaitForExpose();
 }
 SEQUENCE SelectReadoutMode {
-  if mode_TrueGR TrueGRNonCDSReadout(Expose);
-  if mode_dCDS dCDSRawReadout(Expose);
+  if mode_TrueGR TrueGR_Readout(Expose);
+  if mode_dCDS PseudoGR_Readout(Expose);
   if mode_RR Start_RR_seq();
   GOTO WaitForExpose(); 
 }
 
-
+/** ---------------------------------------------------------------------------
+ * @fn	    Rolling Reset
+ * @brief   A first ghost frame is readout to start the sequence in the correct rolling reset state
+ */
   SEQUENCE Start_RR_seq {
  Expose--;
  RR_dCDS_Readout();
@@ -110,9 +111,9 @@ return;
 
  wSetRowClock();            /* Sets row clock - buffered sense node voltage driven on to column bus   */
  wDelay10ns(50);
-                         */
-  if HighGain ResetRowHG(); /* This resets the row's sense node and sets to high gain mode, 1us width */
-  if LowGain ResetRowLG();  /* This resets the row's sense node and sets to low gain mode, 1us width  */
+                  
+  if GainHigh GOTO ResetRowHG(); /* This resets the row's sense node and sets to high gain mode, 1us width */
+  if GainLow GOTO ResetRowLG();  /* This resets the row's sense node and sets to low gain mode, 1us width  */
 
 
 /* We should have the reset level here and are clamping on the reset level */
@@ -134,8 +135,13 @@ return;
   wDelay1us();      /* Delay between Y Latch and the reset of the first pixel which happens on next iteration */
   return;
  }
+
+/** ---------------------------------------------------------------------------
+ * @fn	    True Global Reset
+ * @brief   Both the Reset and charge transfer are done Globally
+ */ 
  
-SEQUENCE TrueGRNonCDSReadout {
+SEQUENCE TrueGR_Readout {
   Expose--;
   GlobalReset();
   MilliSec(exptime); /* Wait the exposure time */
@@ -168,8 +174,8 @@ SEQUENCE ReadRowRaw {
  wSetRowClock();           /* Sets row clock - buffered sense node voltage driven on to column bus   */
   wDelay10ns(50);
   /*wSetClampClock();*/     /* Resets the cds capacitor to the clamp voltage                          */
-  if HighGain ResetRowHG(); /* This resets the row's sense node and sets to high gain mode, 1us width */
-  if LowGain ResetRowLG(); /* This resets the row's sense node and sets to low gain mode, 1us width  */
+ /* if GainHigh GOTO ResetRowHG();*/ /* This resets the row's sense node and sets to high gain mode, 1us width */
+/*  if GainLow GOTO ResetRowLG();*//* This resets the row's sense node and sets to low gain mode, 1us width  */
 
 
  wSetRowClock();
@@ -188,7 +194,7 @@ wDelay1us(1);
 /*wDelay1us(1);*/
 /*wSetRowClock();*/               
 /*wDelay1us(1);*/
- wTGPulse();/* Pulse the transfer gate to move charge to sense node, 10us wide        */
+ /*wTGPulse();*//* Pulse the transfer gate to move charge to sense node, 10us wide        */
  wDelay1us(1);
   /*wDelay1us(25);*/            /* Delay to see the charge level */
   /*wDelay1us(2);*/             /* Need 2us nom. delay between TG pulse low and the sample cap going high */
@@ -218,7 +224,12 @@ SEQUENCE ReadPixRaw_Blank {
   return;
 }
 
-SEQUENCE dCDSRawReadout {
+/** ---------------------------------------------------------------------------
+ * @fn	    Pseudo Global Reset
+ * @brief   Exposure starts with a Global Reset but the rows are then readout twice with a rolling transfer.
+ */
+
+SEQUENCE PseudoGR_Readout {
   Expose--;
   GlobalReset();
   MilliSec(exptime); /* Wait the exposure time */
@@ -250,8 +261,8 @@ SEQUENCE ReadRowdCDSRaw {
  wSetRowClock();            /* Sets row clock - buffered sense node voltage driven on to column bus   */
  wDelay10ns(50);
   /*wSetClampClock();*/     /* Resets the cds capacitor to the clamp voltage                          */
-  if HighGain ResetRowHG(); /* This resets the row's sense node and sets to high gain mode, 1us width */
-  if LowGain ResetRowLG();  /* This resets the row's sense node and sets to low gain mode, 1us width  */
+  if GainHigh GOTO ResetRowHG(); /* This resets the row's sense node and sets to high gain mode, 1us width */
+  if GainLow GOTO ResetRowLG();  /* This resets the row's sense node and sets to low gain mode, 1us width  */
 
 wSetRowClock();
 wDelay10ns(5);  /* Delay between reset and the ADC clamping, this is probably unnecessary */
@@ -276,7 +287,10 @@ wDelay10ns(5);  /* Delay between reset and the ADC clamping, this is probably un
   return;
 }
 
-
+/** ---------------------------------------------------------------------------
+ * @fn	    Misc functions
+ * @brief   Functions shared by the different readout modes
+ */
 
 SEQUENCE XferSample {
   wDelay1us();  
@@ -306,13 +320,13 @@ SEQUENCE ResetRowLG {
 }
 
 SEQUENCE GlobalReset {
-  wSetSnapClock();
+  wSetSnapClock(); /* TG, MIM and RST apply to all the rows now */
   wSetTGClock();
   wSetResetClock();
   wSetMIMClock();
   wDelay1us(1000);      /* Time for TG pulse to propagate, can probably reduce to ~500ns */
-  wLowResetClock();
   wLowTGClock();
+  wLowResetClock();
   wLowMIMClock();
   wLowSnapClock();
   wDelay1us(10);
@@ -320,9 +334,9 @@ SEQUENCE GlobalReset {
 }
 
 SEQUENCE GlobalTransfer {
-  wSetSnapClock();
-  if HighGain wLowMIMClock();
-  if LowGain wSetMIMClock();
+  wSetSnapClock(); /* TG, MIM and RST apply to all the rows now */
+  if GainLow GOTO wSetMIMClock();
+  if GainHigh GOTO wLowMIMClock();
   wSetTGClock();
   wDelay1us(1000);      /* Time for TG pulse to propagate, can probably reduce to ~500ns */
   wLowTGClock();
