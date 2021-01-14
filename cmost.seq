@@ -89,7 +89,7 @@ return;
  
 
   SEQUENCE RR_dCDS_Readout {
-  wFrame();
+  wFrame(); 
   /* Read out the dark rows first */ 
   wSetDarkPixEn();wDelay1ms(5);
    wResetXYAddr();/* Reset the X and Y addresses  */
@@ -112,9 +112,8 @@ return;
  wSetRowClock();            /* Sets row clock - buffered sense node voltage driven on to column bus   */
  wDelay10ns(50);
                   
-  if GainHigh GOTO ResetRowHG(); /* This resets the row's sense node and sets to high gain mode, 1us width */
-  if GainLow GOTO ResetRowLG();  /* This resets the row's sense node and sets to low gain mode, 1us width  */
-
+  if GainHigh ResetRowHG(); /* This resets the row's sense node and sets to high gain mode, 1us width */
+  if GainLow ResetRowLG();  /* This resets the row's sense node and sets to low gain mode, 1us width  */
 
 /* We should have the reset level here and are clamping on the reset level */
  ADClamp();     /* Do a clamp for each line */
@@ -174,8 +173,8 @@ SEQUENCE ReadRowRaw {
  wSetRowClock();           /* Sets row clock - buffered sense node voltage driven on to column bus   */
   wDelay10ns(50);
   /*wSetClampClock();*/     /* Resets the cds capacitor to the clamp voltage                          */
- /* if GainHigh GOTO ResetRowHG();*/ /* This resets the row's sense node and sets to high gain mode, 1us width */
-/*  if GainLow GOTO ResetRowLG();*//* This resets the row's sense node and sets to low gain mode, 1us width  */
+ /* if GainHigh ResetRowHG();*/ /* This resets the row's sense node and sets to high gain mode, 1us width */
+/*  if GainLow ResetRowLG();*//* This resets the row's sense node and sets to low gain mode, 1us width  */
 
 
  wSetRowClock();
@@ -261,8 +260,8 @@ SEQUENCE ReadRowdCDSRaw {
  wSetRowClock();            /* Sets row clock - buffered sense node voltage driven on to column bus   */
  wDelay10ns(50);
   /*wSetClampClock();*/     /* Resets the cds capacitor to the clamp voltage                          */
-  if GainHigh GOTO ResetRowHG(); /* This resets the row's sense node and sets to high gain mode, 1us width */
-  if GainLow GOTO ResetRowLG();  /* This resets the row's sense node and sets to low gain mode, 1us width  */
+  if GainHigh ResetRowHG(); /* This resets the row's sense node and sets to high gain mode, 1us width */
+  if GainLow ResetRowLG();  /* This resets the row's sense node and sets to low gain mode, 1us width  */
 
 wSetRowClock();
 wDelay10ns(5);  /* Delay between reset and the ADC clamping, this is probably unnecessary */
@@ -335,8 +334,8 @@ SEQUENCE GlobalReset {
 
 SEQUENCE GlobalTransfer {
   wSetSnapClock(); /* TG, MIM and RST apply to all the rows now */
-  if GainLow GOTO wSetMIMClock();
-  if GainHigh GOTO wLowMIMClock();
+  if GainLow wSetMIMClock();
+  if GainHigh wLowMIMClock();
   wSetTGClock();
   wDelay1us(1000);      /* Time for TG pulse to propagate, can probably reduce to ~500ns */
   wLowTGClock();
