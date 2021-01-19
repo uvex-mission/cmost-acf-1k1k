@@ -36,6 +36,7 @@ param TPixel_hold=5
  *
  */
 SEQUENCE SetupCmos {
+  wDelay1ms(5000); /* Some time for the FPGA to load its bitstream and biases to settle a bit*/
   wSetRSTMIMClock();  /* This keeps the other rows out of reset */
   wLowSampCaps1();    /* Not using CDS, so leave sample capacitors disconnected */
   wLowSampCaps2();    /* Not ping pong operation, so leave these low */
@@ -71,6 +72,8 @@ SEQUENCE SelectReadoutMode {
  */
   SEQUENCE Start_RR_seq {
  Expose--;
+ wLowSnapClock(); /* to address only ine row at a time */
+ wLowRSTMIMClock(); 
  RR_dCDS_Readout();
  RR_seq(Expose);
 return;
@@ -79,28 +82,29 @@ return;
  SEQUENCE RR_seq {
  Expose--;
 
- SetIPIXOff();
+ /*SetIPIXOff();*/
   MilliSec(exptime); 
- SetIPIXOn(); 
+ /*SetIPIXOn(); */
  wDelay1ms(10);
+/* Science Frame starts here */
  RR_dCDS_Readout();
 return;
  }
  
 
   SEQUENCE RR_dCDS_Readout {
-  wFrame(); 
+wFrame();
   /* Read out the dark rows first */ 
-  wSetDarkPixEn();wDelay1ms(5);
+ /* wSetDarkPixEn();wDelay1ms(5); */
    wResetXYAddr();/* Reset the X and Y addresses  */
    wDelay1us(1);
-  wPulseYAddr();wDelay1us(5000);
-  ReadRowRR(DarkRows);
- wLowDarkPixEn();wDelay1ms(5);
+ /* wPulseYAddr();wDelay1us(5000); */
+ /* ReadRowRR(DarkRows); */
+ /* wLowDarkPixEn();wDelay1ms(5); */
  /* Now read the active pixels */
   wResetXYAddr();/* Reset the X and Y addresses  */
    wDelay1us(1);
-  wPulseYAddr();wDelay1us(5000);
+  wPulseYAddr();wDelay1us(5);
   ReadRowRR(MaxRows);  /* Go through all the rows, each raw output has 256 columns associated */ 
  return;
  }
@@ -112,13 +116,9 @@ return;
  wSetRowClock();            /* Sets row clock - buffered sense node voltage driven on to column bus   */
  wDelay10ns(50);
                   
-  if GainHigh ResetRowHG(); /* This resets the row's sense node and sets to high gain mode, 1us width */
-  if GainLow ResetRowLG();  /* This resets the row's sense node and sets to low gain mode, 1us width  */
+  if GainHigh ResetRowHGandClamp(); /* This resets the row's sense node and sets to high gain mode, 1us width */
+  if GainLow ResetRowLGandClamp();  /* This resets the row's sense node and sets to low gain mode, 1us width  */
 
-/* We should have the reset level here and are clamping on the reset level */
- ADClamp();     /* Do a clamp for each line */
- wDelay1us(1); /* Hold for 50 us */
- ADClamp_();    /* Unclamp the ADCs         */
 
  wDelay1us(10);
  ReadPixRaw(256);  /* Read Reference reset level */
@@ -126,7 +126,8 @@ return;
  wTGPulse_RR();/* Pulse the transfer gate to move charge to sense node, 10us wide        */
  wDelay1us(10);
  ReadPixRaw(256);         /* Reads the Signal Level */
-/*RollingReset();*/
+ 
+ /* RollingReset(); */
  wLowRowClock(); 
  
   /* The FPGA will need to handle the roll over and enable the next Y Block */
@@ -260,16 +261,8 @@ SEQUENCE ReadRowdCDSRaw {
  wSetRowClock();            /* Sets row clock - buffered sense node voltage driven on to column bus   */
  wDelay10ns(50);
   /*wSetClampClock();*/     /* Resets the cds capacitor to the clamp voltage                          */
-  if GainHigh ResetRowHG(); /* This resets the row's sense node and sets to high gain mode, 1us width */
-  if GainLow ResetRowLG();  /* This resets the row's sense node and sets to low gain mode, 1us width  */
-
-wSetRowClock();
-wDelay10ns(5);  /* Delay between reset and the ADC clamping, this is probably unnecessary */
-
-/* We should have the reset level here and are clamping on the reset level */
- ADClamp();     /* Do a clamp for each line */
- wDelay1us(1); /* Hold for 50 us */
- ADClamp_();    /* Unclamp the ADCs         */
+  if GainHigh ResetRowHGandClamp(); /* This resets the row's sense node and sets to high gain mode, 1us width */
+  if GainLow ResetRowLGandClamp();  /* This resets the row's sense node and sets to low gain mode, 1us width  */
 
  wDelay1us(10);
  ReadPixRaw(256);  /* Read Reference reset level */
@@ -297,22 +290,30 @@ SEQUENCE XferSample {
   return;
 }
 
-SEQUENCE ResetRowHG {
+SEQUENCE ResetRowHGandClamp {
   /* Set Reset clock and MIM clock to reset the sense node */
   /* Then the MIM clock goes low and Reset remains high for high gain */ 
   wSetResetClock();
   wSetMIMClock();
   wDelay1us(2);  /* Pulse width on MIM clock is 2us nominal */
+   ADClamp();     /* Do a clamp for each line */
+ wDelay1us(2); /* Hold for 50 us */
+ ADClamp_();    /* Unclamp the ADCs         */
   wLowMIMClock();
+  wLowResetClock();
   return;
 }
 
-SEQUENCE ResetRowLG {
+SEQUENCE ResetRowLGandClamp {
   /* Set Reset clock and MIM clock to reset the sense node */
   /* Then the Reset clock goes low and MIM remains high for low gain */ 
   wSetResetClock();
   wSetMIMClock();
   wDelay1us(4);  /* Pulse width on Reset clock is 2us nominal */
+    wDelay1us(2);  /* Pulse width on MIM clock is 2us nominal */
+   ADClamp();     /* Do a clamp for each line */
+ wDelay1us(2); /* Hold for 50 us */
+ ADClamp_();    /* Unclamp the ADCs         */
   wLowResetClock();
   wDelay1us(2);
   return;
