@@ -60,9 +60,9 @@ SEQUENCE WaitForExpose {
   GOTO WaitForExpose();
 }
 SEQUENCE SelectReadoutMode {
-  if mode_TrueGR TrueGR_Readout(Expose);
-  if mode_dCDS PseudoGR_Readout(Expose);
-  if mode_RR Start_RR_seq();
+  if mode_TrueGR GOTO  Start_TrueGR_Seq();
+  if mode_dCDS   GOTO  Start_PseudoGR_Seq();
+  if mode_RR     GOTO  Start_RR_seq();
   GOTO WaitForExpose(); 
 }
 
@@ -76,7 +76,7 @@ SEQUENCE SelectReadoutMode {
  wLowRSTMIMClock(); 
  RR_dCDS_Readout();
  RR_seq(Expose);
-return;
+GOTO WaitForExpose();
  }
  
  SEQUENCE RR_seq {
@@ -141,27 +141,31 @@ wFrame();
  * @brief   Both the Reset and charge transfer are done Globally
  */ 
  
+SEQUENCE Start_TrueGR_Seq {
+  TrueGR_Readout(Expose);
+  GOTO WaitForExpose();
+}
+
 SEQUENCE TrueGR_Readout {
   Expose--;
+  wLowRSTMIMClock();
   GlobalReset();
   MilliSec(exptime); /* Wait the exposure time */
+  
+   wDelay1us(2);  /* Pulse width on MIM clock is 2us nominal */
+   ADClamp();     /* Do a clamp for each line */
+ wDelay1us(2); /* Hold for 50 us */
+ ADClamp_();    /* Unclamp the ADCs         */
+  wDelay1us(20); 
+  
   GlobalTransfer();
+  
   wFrame();
   /* Need to latch X and Y address at 0, counter reset also create latch signal in FPGA?     */
-  /* Don't worry about the rolling shutter yet, just start at corner of device */
-  wSetDarkPixEn(); /* Read out the dark rows first */
-  wResetXYAddr();  /* Reset the X and Y addresses  */
-wDelay10ns(10);  
-wPulseYAddr();
-
-  ReadRowRaw(DarkRows);
-  wLowDarkPixEn(); /* Get out of dark pixel enable mode */
-
-  /* Now read the active pixels */
   wResetXYAddr();  /* Reset the X and Y address counters - can this also create a latch in FPGA? */
-wDelay10ns(10); 
-wPulseYAddr();  
-/*wSetAllXBlocks();*/ /* With 16 ADC inputs enable all 4 X blocks - this done in FPGA          */
+  wDelay10ns(10); 
+  wPulseYAddr();  
+  /*wSetAllXBlocks();*/ /* With 16 ADC inputs enable all 4 X blocks - this done in FPGA          */
 
   ReadRowRaw(MaxRows);  /* Go through all the rows, each raw output has 256 columns associated */
 
@@ -173,35 +177,13 @@ SEQUENCE ReadRowRaw {
 
  wSetRowClock();           /* Sets row clock - buffered sense node voltage driven on to column bus   */
   wDelay10ns(50);
-  /*wSetClampClock();*/     /* Resets the cds capacitor to the clamp voltage                          */
- /* if GainHigh ResetRowHG();*/ /* This resets the row's sense node and sets to high gain mode, 1us width */
-/*  if GainLow ResetRowLG();*//* This resets the row's sense node and sets to low gain mode, 1us width  */
-
-
- wSetRowClock();
-wDelay10ns(5);  /* Delay between reset and the ADC clamping, this is probably unnecessary */
-
-/* We should have the reset level here and are clamping on the reset level */
-  ADClamp();     /* Do a clamp for each line */
-  wDelay1us(50); /* Hold for 50 us */
-  ADClamp_();    /* Unclamp the ADCs         */
-  
-  /*wDelay1us(25);*/            /* Delay to see the reset level */
-  /*wDelay1us(2);*/             /* Delay between clamp going low to TG going high 2us - nominal value */
  
-wDelay1us(1);
-/* wLowRowClock(); */
-/*wDelay1us(1);*/
-/*wSetRowClock();*/               
-/*wDelay1us(1);*/
- /*wTGPulse();*//* Pulse the transfer gate to move charge to sense node, 10us wide        */
+
+
  wDelay1us(1);
-  /*wDelay1us(25);*/            /* Delay to see the charge level */
-  /*wDelay1us(2);*/             /* Need 2us nom. delay between TG pulse low and the sample cap going high */
-  /*wSetSampCaps1();*/           /* Sample A and Sample B both high - simple straight through operation    */
-  /* All the pixels in the row are ready to read now.  Go Read all of the pixels                      */
+
   ReadPixRaw(256);         /* Reads the whole X Block, FPGA will have to increment OUTPUT_MUX_ENABLE[0,1]  */
-  /*LowSampCaps1();*/
+ 
   wDelay1us(2);
   wLowRowClock(); 
   /* Do all the pixels and then increment the row address */
@@ -210,6 +192,42 @@ wDelay1us(1);
   wDelay1us();      /* Delay between Y Latch and the reset of the first pixel which happens on next iteration */
   return;
 }
+
+
+
+/** ---------------------------------------------------------------------------
+ * @fn	    Pseudo Global Reset
+ * @brief   Exposure starts with a Global Reset but the rows are then readout twice with a rolling transfer.
+ */
+
+SEQUENCE Start_PseudoGR_Seq {
+  PseudoGR_Readout(Expose);
+  GOTO WaitForExpose();
+}
+
+SEQUENCE PseudoGR_Readout {
+  Expose--;
+  GlobalReset();
+  MilliSec(exptime); /* Wait the exposure time */
+  wFrame();
+  /* Need to latch X and Y address at 0, counter reset also create latch signal in FPGA?     */
+  /* Don't worry about the rolling shutter yet, just start at corner of device */
+ 
+  wResetXYAddr();  /* Reset the X and Y addresses  */
+wDelay10ns(10);  
+wPulseYAddr();
+
+  ReadRowRR(MaxRows);  /* Go through all the rows, each raw output has 256 columns associated */
+
+  return;
+}
+
+
+/** ---------------------------------------------------------------------------
+ * @fn	    Misc functions
+ * @brief   Functions shared by the different readout modes
+ */
+
 
 SEQUENCE ReadPixRaw {
   wPixel();               /* start the pixel CDS samples clock */
@@ -221,72 +239,6 @@ SEQUENCE ReadPixRaw_Blank {
   wDelay10ns(1);
   wPulseXAddr(); /* Increment the X address 50 ns width          */
   wDelay10ns(TPixel_hold);  /* Do nothing while getting samples of the CDS signal */
-  return;
-}
-
-/** ---------------------------------------------------------------------------
- * @fn	    Pseudo Global Reset
- * @brief   Exposure starts with a Global Reset but the rows are then readout twice with a rolling transfer.
- */
-
-SEQUENCE PseudoGR_Readout {
-  Expose--;
-  GlobalReset();
-  MilliSec(exptime); /* Wait the exposure time */
-  wFrame();
-  /* Need to latch X and Y address at 0, counter reset also create latch signal in FPGA?     */
-  /* Don't worry about the rolling shutter yet, just start at corner of device */
-  wSetDarkPixEn(); /* Read out the dark rows first */
-  wResetXYAddr();  /* Reset the X and Y addresses  */
-wDelay10ns(10);  
-wPulseYAddr();
-
-  ReadRowdCDSRaw(DarkRows);
-  wLowDarkPixEn(); /* Get out of dark pixel enable mode */
-
-  /* Now read the active pixels */
-  wResetXYAddr();  /* Reset the X and Y address counters - can this also create a latch in FPGA? */
-wDelay10ns(10); 
-wPulseYAddr();  
-/*wSetAllXBlocks();*/ /* With 16 ADC inputs enable all 4 X blocks - this done in FPGA          */
-
-  ReadRowdCDSRaw(MaxRows);  /* Go through all the rows, each raw output has 256 columns associated */
-
-  return;
-}
-
-SEQUENCE ReadRowdCDSRaw {
- wLine();                   /* Trigger a new line */
-
- wSetRowClock();            /* Sets row clock - buffered sense node voltage driven on to column bus   */
- wDelay10ns(50);
-  /*wSetClampClock();*/     /* Resets the cds capacitor to the clamp voltage                          */
-  if GainHigh ResetRowHGandClamp(); /* This resets the row's sense node and sets to high gain mode, 1us width */
-  if GainLow ResetRowLGandClamp();  /* This resets the row's sense node and sets to low gain mode, 1us width  */
-
- wDelay1us(10);
- ReadPixRaw(256);  /* Read Reference reset level */
-
- wTGPulse();/* Pulse the transfer gate to move charge to sense node, 10us wide        */
- wDelay1us(10);
- ReadPixRaw(256);         /* Reads the Signal Level */
-
- wLowRowClock(); 
-
-  /* The FPGA will need to handle the roll over and enable the next Y Block */
-  wPulseYAddr();    /* FPGA controls DV_IN[], Y_ENABLE_BLOCK[], and Y_LATCH through counter/FPGA    */
-  wDelay1us();      /* Delay between Y Latch and the reset of the first pixel which happens on next iteration */
-  return;
-}
-
-/** ---------------------------------------------------------------------------
- * @fn	    Misc functions
- * @brief   Functions shared by the different readout modes
- */
-
-SEQUENCE XferSample {
-  wDelay1us();  
-  wPulseXAddr(); /* Increment the X address 250 ns width          */
   return;
 }
 
@@ -324,8 +276,9 @@ SEQUENCE GlobalReset {
   wSetTGClock();
   wSetResetClock();
   wSetMIMClock();
-  wDelay1us(1000);      /* Time for TG pulse to propagate, can probably reduce to ~500ns */
+  wDelay1us(10000);      /* Time for TG pulse to propagate, can probably reduce to ~500ns */
   wLowTGClock();
+  wDelay1us(10000); 
   wLowResetClock();
   wLowMIMClock();
   wLowSnapClock();
@@ -338,7 +291,7 @@ SEQUENCE GlobalTransfer {
   if GainLow wSetMIMClock();
   if GainHigh wLowMIMClock();
   wSetTGClock();
-  wDelay1us(1000);      /* Time for TG pulse to propagate, can probably reduce to ~500ns */
+  wDelay1us(10000);      /* Time for TG pulse to propagate, can probably reduce to ~500ns */
   wLowTGClock();
   wLowSnapClock();
   wDelay1us(10);
