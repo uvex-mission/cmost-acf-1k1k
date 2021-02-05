@@ -204,7 +204,12 @@ WAVEFORM wLowDarkPixEn {
  0:                  SET DARK_PIX_EN   TO Low;
 }
 
-
+WAVEFORM wLowXLatch {
+ 0:	 	     SET X_ADDR_CLOCK TO Low;
+}
+WAVEFORM wLowYLatch {
+ 0:	 	     SET Y_ADDR_CLOCK TO Low;
+}
 
 /* Pulse waveforms */
 WAVEFORM wTGPulse {

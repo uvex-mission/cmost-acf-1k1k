@@ -24,7 +24,7 @@ param MaxRows=_MAX_ROWS
 param GainLow=0
 param GainHigh=1
 param numsamples=_NUM_CDS_SAMPLES
-param TPixel_hold=5
+param TPixel_hold=50
 
 /* There are 4 parallel outputs per 1024 pixel block.  The x address       */
 /* increases to 256 and then resets, this should cover all of the columns. */
@@ -36,13 +36,9 @@ param TPixel_hold=5
  *
  */
 SEQUENCE SetupCmos {
+  AllLow(); /*That should happen before the VDDEN goes high and clocks are effectively going to the detector */
   wDelay1ms(5000); /* Some time for the FPGA to load its bitstream and biases to settle a bit*/
-  wSetRSTMIMClock();  /* This keeps the other rows out of reset */
-  wLowSampCaps1();    /* Not using CDS, so leave sample capacitors disconnected */
-  wLowSampCaps2();    /* Not ping pong operation, so leave these low */
-  wResetXYAddr();     /* Reset the addresses */
-  wLowDarkPixEn();  /* Get out of dark pixel enable mode */
-  GlobalReset();      /* Global reset of device, now roll the shutter while waiting for exp */
+ /* GlobalReset();  */    /* Global reset of device, now roll the shutter while waiting for exp */
 }
 
 /* And we'll fall into the wait for exposure routine                      */
@@ -56,7 +52,7 @@ SEQUENCE SetupCmos {
 
 SEQUENCE WaitForExpose {
   if Expose SelectReadoutMode();
-  GlobalReset();/* Apply Global Reset to the Array */          
+ /* GlobalReset();*//* Apply Global Reset to the Array */          
   GOTO WaitForExpose();
 }
 SEQUENCE SelectReadoutMode {
@@ -74,6 +70,7 @@ SEQUENCE SelectReadoutMode {
  Expose--;
  wLowSnapClock(); /* to address only ine row at a time */
  wLowRSTMIMClock(); 
+ GlobalReset();
  RR_dCDS_Readout();
  RR_seq(Expose);
 GOTO WaitForExpose();
@@ -149,24 +146,31 @@ SEQUENCE Start_TrueGR_Seq {
 SEQUENCE TrueGR_Readout {
   Expose--;
   wLowRSTMIMClock();
-  GlobalReset();
+  
+  GlobalReset();     /* Erase the PPD and the Sense Node*/
   MilliSec(exptime); /* Wait the exposure time */
+  GlobalSNReset();   /* Empty the SN */
   
-   wDelay1us(2);  /* Pulse width on MIM clock is 2us nominal */
-   ADClamp();     /* Do a clamp for each line */
- wDelay1us(2); /* Hold for 50 us */
- ADClamp_();    /* Unclamp the ADCs         */
-  wDelay1us(20); 
+  /* Start Readout of the Reset Frame */
+   wFrame();
+   
+  wResetXYAddr();  /* Reset the X and Y address counters*/
+  wDelay10ns(10); 
+  wPulseYAddr();  
+ 
+  wSetRowClock();
+  ArchonClamp(); 
+  wLowRowClock();
   
-  GlobalTransfer();
+  ReadRowRaw(MaxRows);  /* Go through all the rows, each raw output has 256 columns associated */
   
-  wFrame();
-  /* Need to latch X and Y address at 0, counter reset also create latch signal in FPGA?     */
+  GlobalTransfer(); /* Charge Transfer from the PPD to the empty SN*/
+  
   wResetXYAddr();  /* Reset the X and Y address counters - can this also create a latch in FPGA? */
   wDelay10ns(10); 
   wPulseYAddr();  
-  /*wSetAllXBlocks();*/ /* With 16 ADC inputs enable all 4 X blocks - this done in FPGA          */
-
+  
+  /* Start Readout of the Image Frame*/
   ReadRowRaw(MaxRows);  /* Go through all the rows, each raw output has 256 columns associated */
 
   return;
@@ -276,13 +280,24 @@ SEQUENCE GlobalReset {
   wSetTGClock();
   wSetResetClock();
   wSetMIMClock();
-  wDelay1us(10000);      /* Time for TG pulse to propagate, can probably reduce to ~500ns */
+  wDelay1us(10);      /* Time for TG pulse to propagate, can probably reduce to ~500ns */
   wLowTGClock();
-  wDelay1us(10000); 
+  wDelay1us(1); 
   wLowResetClock();
   wLowMIMClock();
   wLowSnapClock();
-  wDelay1us(10);
+  wDelay1us(1);
+  return;
+}
+SEQUENCE GlobalSNReset {
+  wSetSnapClock(); /* TG, MIM and RST apply to all the rows now */
+  wSetResetClock();
+  wSetMIMClock();
+  wDelay1us(10);      /* Time for TG pulse to propagate, can probably reduce to ~500ns */
+  wLowResetClock();
+  wLowMIMClock();
+  wLowSnapClock();
+  wDelay1us(1);
   return;
 }
 
@@ -310,10 +325,32 @@ SEQUENCE RollingReset {
 return;
 }
 
+SEQUENCE ArchonClamp {
+ wDelay1us();  
+ ADClamp();     
+ wDelay1us(2); 
+ ADClamp_();
+ wDelay1us(2); 
+ return;
+}
+
 SEQUENCE MilliSec {
   wDelay1ms();	/* This is a placeholder 1ms routine - Need to fix up */
   return;
 }
 
-
+SEQUENCE AllLow {
+  wLowMIMClock();
+  wLowTGClock();
+  wLowResetClock();
+  wLowRowClock();
+  wLowSnapClock();
+  wLowClampClock();
+  wLowXLatch();
+  wLowYLatch();
+  wLowSampCaps1();    
+  wLowSampCaps2();    
+  wLowDarkPixEn();
+  return;
+}
 
