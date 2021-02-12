@@ -1,7 +1,7 @@
 /** -*- C -*- **/
 
 /* Nominal values for the biases */
-#define PVREF          3.0
+#define PVREF          2.8
 #define CLOFFSET       2.8
 #define CLSELECT       0.0  
 #define SASELECT       0.0  
@@ -16,7 +16,7 @@
 #define VLOWROW        0.0
 #define VHIGHROW       4.5  /* higher than datasheet because of ROIX issue */
 #define BWLIMIT        0.0  
-#define IPIXPAD        1.8
+#define IPIXPAD        1.75
 #define ICDSPAD        1.7
 #define IBUFPAD        0.7
 #define PIXSUPPLY      3.3
@@ -83,7 +83,7 @@ SLOT 9 lvxbias {
   LVLC 23 [VSPARE,1];        /* Spare                  */
   LVLC 24 [VSPARE,1];        /* Spare                  */
   LVHC  1 [VSPARE,10,1,1];   /* Used for the LED                  */
-  LVHC  2 [PIXSUPPLY,50,1,1];/* Pixel Supply           */
+  LVHC  2 [PIXSUPPLY,80,1,1];/* Pixel Supply           */
   LVHC  3 [VSPARE,10,2,0];   /* Spare                  */
   LVHC  4 [VDDA,20,5,1];    /* VDD (video pull up)    */
   LVHC  5 [VDD,40,1,1];     /* VDD                    */

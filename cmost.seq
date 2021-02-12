@@ -81,8 +81,8 @@ GOTO WaitForExpose();
 
  /*SetIPIXOff();*/
   MilliSec(exptime); 
- /*SetIPIXOn(); */
- wDelay1ms(10);
+/* SetIPIXOn();*/
+
 /* Science Frame starts here */
  RR_dCDS_Readout();
 return;
@@ -139,6 +139,7 @@ wFrame();
  */ 
  
 SEQUENCE Start_TrueGR_Seq {
+  GlobalReset(); 
   TrueGR_Readout(Expose);
   GOTO WaitForExpose();
 }
@@ -158,15 +159,17 @@ SEQUENCE TrueGR_Readout {
   wDelay10ns(10); 
   wPulseYAddr();  
  
+  
   wSetRowClock();
-  ArchonClamp(); 
+  if GainHigh ResetRowHGandClamp(); /* This resets the row's sense node and sets to high gain mode, 1us width */
+  if GainLow ResetRowLGandClamp();  /* This resets the row's sense node and sets to low gain mode, 1us width  */
   wLowRowClock();
   
   ReadRowRaw(MaxRows);  /* Go through all the rows, each raw output has 256 columns associated */
   
   GlobalTransfer(); /* Charge Transfer from the PPD to the empty SN*/
   
-  wResetXYAddr();  /* Reset the X and Y address counters - can this also create a latch in FPGA? */
+  wResetXYAddr();  /* Reset the X and Y address counters*/
   wDelay10ns(10); 
   wPulseYAddr();  
   
@@ -306,7 +309,7 @@ SEQUENCE GlobalTransfer {
   if GainLow wSetMIMClock();
   if GainHigh wLowMIMClock();
   wSetTGClock();
-  wDelay1us(10000);      /* Time for TG pulse to propagate, can probably reduce to ~500ns */
+  wDelay1us(10);      /* Time for TG pulse to propagate, can probably reduce to ~500ns */
   wLowTGClock();
   wLowSnapClock();
   wDelay1us(10);
@@ -328,9 +331,9 @@ return;
 SEQUENCE ArchonClamp {
  wDelay1us();  
  ADClamp();     
- wDelay1us(2); 
+ wDelay1us(5); 
  ADClamp_();
- wDelay1us(2); 
+ wDelay1us(5); 
  return;
 }
 
