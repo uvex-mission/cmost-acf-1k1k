@@ -18,13 +18,15 @@ param Expose=0
 param mode_TrueGR=0
 param mode_dCDS=0
 param mode_RR=0
+param mode_RR_HDR=0
 param Abort=0
 param DarkRows=_DARK_ROWS
 param MaxRows=_MAX_ROWS
 param GainLow=0
 param GainHigh=1
 param numsamples=_NUM_CDS_SAMPLES
-param TPixel_hold=50
+param TPixel_hold=86 /* #50 */
+
 
 /* There are 4 parallel outputs per 1024 pixel block.  The x address       */
 /* increases to 256 and then resets, this should cover all of the columns. */
@@ -59,6 +61,7 @@ SEQUENCE SelectReadoutMode {
   if mode_TrueGR GOTO  Start_TrueGR_Seq();
   if mode_dCDS   GOTO  Start_PseudoGR_Seq();
   if mode_RR     GOTO  Start_RR_seq();
+  if mode_RR_HDR GOTO Start_RR_seq_HDR();
   GOTO WaitForExpose(); 
 }
 
@@ -132,7 +135,86 @@ wFrame();
   wDelay1us();      /* Delay between Y Latch and the reset of the first pixel which happens on next iteration */
   return;
  }
+ 
+ 
+ /** ---------------------------------------------------------------------------
+ * @fn	    Rolling Reset HDR with Dual readout
+ * @brief   A first ghost frame is readout to start the sequence in the correct rolling reset state
+ */
+ SEQUENCE Start_RR_seq_HDR {
+ Expose--;
+ wLowSnapClock(); /* to address only ine row at a time */
+ wLowRSTMIMClock(); 
+ GlobalReset();
+ RR_dCDS_Readout_HDR();
+ RR_seq_HDR(Expose);
+GOTO WaitForExpose();
+ }
+ 
+ SEQUENCE RR_seq_HDR {
+ Expose--;
 
+ /*SetIPIXOff();*/
+  MilliSec(exptime); 
+/* SetIPIXOn();*/
+
+/* Science Frame starts here */
+ RR_dCDS_Readout_HDR();
+return;
+ }
+ 
+
+  SEQUENCE RR_dCDS_Readout_HDR {
+wFrame();
+  /* Read out the dark rows first */ 
+ /* wSetDarkPixEn();wDelay1ms(5); */
+   wResetXYAddr();/* Reset the X and Y addresses  */
+   wDelay1us(1);
+ /* wPulseYAddr();wDelay1us(5000); */
+ /* ReadRowRR(DarkRows); */
+ /* wLowDarkPixEn();wDelay1ms(5); */
+ /* Now read the active pixels */
+  wResetXYAddr();/* Reset the X and Y addresses  */
+   wDelay1us(1);
+  wPulseYAddr();wDelay1us(5);
+  ReadRowRR_HDR(MaxRows);  /* Go through all the rows, each raw output has 256 columns associated */ 
+ return;
+ }
+ 
+ 
+ SEQUENCE ReadRowRR_HDR{
+ wLine();                   /* Trigger a new line */
+
+ wSetRowClock();            /* Sets row clock - buffered sense node voltage driven on to column bus   */
+ wDelay10ns(50);
+                  
+  ResetRowLGandClamp(); /* This resets the row's sense node and sets to high gain mode, 1us width */
+  wDelay1us(10);
+  ReadPixRaw(256);  /* Read Reference reset level in Low gain mode */
+
+  wLowMIMClock(); 
+  wDelay1us(10);
+  ReadPixRaw(256);  /* Read Reference reset level in High gain mode */ 
+  
+ wTGPulse_RR();/* Pulse the transfer gate to move charge to sense node, 10us wide        */
+ wDelay1us(10);
+ ReadPixRaw(256);         /* Reads the Signal Level in High Gain Mode*/
+ 
+ wSetMIMClock();
+ wTGPulse_RR();
+ wDelay1us(10);
+ 
+ ReadPixRaw(256);         /* Reads the Signal Level in Low Gain Mode*/
+ 
+ /* RollingReset(); */
+ wLowRowClock(); 
+ 
+  /* The FPGA will need to handle the roll over and enable the next Y Block */
+  wPulseYAddr();    /* FPGA controls DV_IN[], Y_ENABLE_BLOCK[], and Y_LATCH through counter/FPGA    */
+  wDelay1us();      /* Delay between Y Latch and the reset of the first pixel which happens on next iteration */
+  return;
+ }
+ 
 /** ---------------------------------------------------------------------------
  * @fn	    True Global Reset
  * @brief   Both the Reset and charge transfer are done Globally
