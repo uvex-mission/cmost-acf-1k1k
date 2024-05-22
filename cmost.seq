@@ -209,11 +209,11 @@ if !prv_ghostframe wFrame();
                   
   ResetRowLGandClamp(); /* This resets the row's sense node and sets to high gain mode, 1us width */
   wDelay1us(10);
- ReadPixRaw(256);  /* Read Reference reset level in Low gain mode */
+ ReadPixRaw_Reset(256);  /* Read Reference reset level in Low gain mode */
 /*  ReadPixRawRL(256);*/
   wLowMIMClock(); 
   wDelay1us(10);
-  ReadPixRaw(256);  /* Read Reference reset level in High gain mode */ 
+  ReadPixRaw_Reset(256);  /* Read Reference reset level in High gain mode */ 
 /*  ReadPixRawRH(256);*/
  wTGPulse_RR();/* Pulse the transfer gate to move charge to sense node, 10us wide        */
  wDelay1us(10);
@@ -242,6 +242,14 @@ wPixel();
 wDelay10ns(TPixel_hold);
 return;
 }
+
+SEQUENCE ReadPixRaw_Reset {
+wPulseXAddr();
+wPixel();
+wDelay10ns(TPixel_hold);
+return;
+}
+
 SEQUENCE ReadPixRawRL {
 wPixel();
 wPulseXAddr();
