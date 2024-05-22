@@ -62,7 +62,9 @@
 #define I_PIXEL_PAD       9 : 16 /* Pixel SF current mirror voltage                */
 #define CLAMP_OFFSET      9 : 17 /* CDS clamp SF current mirror voltage            */
 #define VLOW_ROW          9 : 18 /* CDS sample SF current mirror voltage           */
+#define LED		  9 : 25 
 #define PIX_SUPPLY        9 : 26 /* Pix supply voltage */
+#define VSSA_PULLDOWN	  9 : 27
 #define VDDA_PULLUP       9 : 28
 #define VDD               9 : 29
 /*#define DIO1              9 : 31*/ /* DIO 1 */
@@ -84,12 +86,12 @@
 #define ROW_SELECT	10 : 5  /* Enables the column video for selected row   	   */
 #define RESET_MIM	10 : 6  /* Holds sense node of all pixels in reset     	   */
 #define CLAMP_CLOCK	10 : 7  /* CDS clamp cap set to diff of voltage and OFFSET */
-#define CH1_A_SAMPLE	10 : 8  /* Save signal on capacitor channel 1         	   */
-#define CH1_B_SAMPLE    10 : 9  /* Send Channel 1 cap signal to CDS output         */
+#define LOGLO		10 : 8  /* Save signal on capacitor channel 1         	   */
+#define V_GUIDING_RESET 10 : 9  /* Send Channel 1 cap signal to CDS output         */
 #define CH2_A_SAMPLE    10 : 10 /* Save signal on capacitor channel 2              */
 #define CH2_B_SAMPLE    10 : 11 /* Send Channel 2 cap signal to CDS output         */
 #define XY_ADDR_RESET   10 : 12 /* Reset both X and Y address registers (FPGA)     */
 #define X_ADDR_CLOCK    10 : 13 /* Clock the X address counter (FPGA)              */
 #define Y_ADDR_CLOCK    10 : 14 /* Clock the Y address counter (FPGA)              */
 #define DARK_PIX_EN     10 : 15 /* Enable the 8 rows of dark pixels                */
-#define SPARE_LVDS      10 : 16 /* Spare LVDS singal                               */
+#define H_GUIDING_RESET   10 : 16 /* Spare LVDS singal                               */

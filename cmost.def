@@ -8,8 +8,8 @@
  * Set the size of the CMOS array
  */
 #define _DARK_ROWS    0
-#define _MAX_ROWS  2048   /* Maximum number of rows in CMOS array      */
-#define _MAX_COLS  4096   /* Maximum number of columns in CMOS array   */
+#define _MAX_ROWS  1024   /* Maximum number of rows in CMOS array      */
+#define _MAX_COLS  1024   /* Maximum number of columns in CMOS array   */
 #define _MAX_YADDR 1023   /* Maximum Y Address - zero index            */
 #define _MAX_XADDR 255    /* Maximum X Address - zero index            */
 
@@ -35,7 +35,7 @@
 #define _RAW_SAMPLES           25600
 #define _RAW_SELECT               0 /* AD channel for raw data capture, 0-15 */
 
-#define _FIRST_RESET_SAMPLE       32 /* 40*/
-#define _LAST_RESET_SAMPLE        87 /*48 #eval _FIRST_RESET_SAMPLE + _NUM_CDS_SAMPLES*/
-#define _FIRST_VIDEO_SAMPLE       89 /* 50 #eval _LAST_RESET_SAMPLE + 1*/
-#define _LAST_VIDEO_SAMPLE        89 /* 50 _FIRST_VIDEO_SAMPLE*/
+#define _FIRST_RESET_SAMPLE       40 /* 40*/
+#define _LAST_RESET_SAMPLE        139 /*48 #eval _FIRST_RESET_SAMPLE + _NUM_CDS_SAMPLES*/
+#define _FIRST_VIDEO_SAMPLE       141 /* 50 #eval _LAST_RESET_SAMPLE + 1*/
+#define _LAST_VIDEO_SAMPLE        141 /* 50 _FIRST_VIDEO_SAMPLE*/
