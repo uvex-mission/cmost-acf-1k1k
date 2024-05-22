@@ -32,22 +32,23 @@
 #define sec        *(clockfreq)                   /* clock cycles per second   */
 #define ms         *(clockfreq/1000)              /* clock cycles per millisec */
 #define us         *(clockfreq/1000000)           /* clock cycles per microsec */
-#define ns         *(clockfreq/1000000000)          /* clock cycles per nanosecond */
 #define clicks	   *(clockfreq/100000000)	  /* clock cycles per nanosecond */
 
 /* Timing defines */
 /* Generic timing parameters */
 #define TICK	        #eval  1 clicks		  /* 10 nsec */
 #define 1ms	        #eval  1 ms
+#define 100ns		#eval  10 clicks
 #define 1us             #eval  1 us
 #define 2us             #eval  2 us
 #define 20us            #eval 20 us
 #define 25us            #eval 25 us
 #define 10ms            #eval 10 ms
 #define 10us            #eval 10 us
+#define 100ms		#eval 100 ms
 /* Timing specific to CMOS waveform */
 #define TGWidth         #eval 10 us /*  10 us */
-#define TGWidth_RR	#eval 10 us
+#define TGWidth_RR	#eval 1 us
 #define ADRRstWidth     #eval  1 us
 #define ADRWidth        25          /* Nominal YLatch is 250 ns wide */
 #define ADRXWidth        5          /* Nominal XLatch is 250 ns wide */
@@ -60,7 +61,7 @@
 #define BiasLow                0
 
 #define IPixPadOff		3.3
-#define IPixPadOn		1.8
+#define IPixPadOn		1.75
 /* Vestigial definition  */
 #define PixelT                84
 
@@ -68,6 +69,18 @@
 WAVEFORM wResetXYAddr {
  0:                  SET XY_ADDR_RESET TO High;
  .+ADRRstWidth:      SET XY_ADDR_RESET TO Low;
+.+ADRRstWidth:	return;
+}
+
+
+WAVEFORM wResetHGuiding {
+ 0:                  SET H_GUIDING_RESET TO High;
+ .+ADRRstWidth:      SET H_GUIDING_RESET TO Low;
+}
+
+WAVEFORM wResetVGuiding {
+ 0:                  SET V_GUIDING_RESET TO High;
+ .+ADRRstWidth:      SET V_GUIDING_RESET TO Low;
 }
 
 /* All of the X Blocks should be anbled, but I believ this is an FPGA function */
@@ -76,12 +89,54 @@ WAVEFORM wResetXYAddr {
 /*}*/
 /* Change DC Bias Value */
 WAVEFORM SetIPIXOff {
-SET I_PIXEL_PAD TO IPixPadOff;
+0: SET  I_PIXEL_PAD TO IPixPadOff;
+.+10ms:	RETURN;
 }
 WAVEFORM SetIPIXOn {
-SET I_PIXEL_PAD TO IPixPadOn;
+0: SET I_PIXEL_PAD TO IPixPadOn;
+.+10ms: RETURN;
+}
+WAVEFORM SetVDDAOff {
+0: SET VDDA_PULLUP TO 0;
+.+10ms:	RETURN;
+}
+WAVEFORM SetVDDAOn {
+0: SET VDDA_PULLUP TO 3.3;
+.+10ms: RETURN;
+}
+WAVEFORM SetBiasesOff {
+0:     SET  VHIGH_MIM    TO 0;
+.+1:   SET  I_PIXEL_PAD  TO 0.0 /*3.3*/;
+.+1:   SET  VHIGH_ROW    TO 0;
+.+1:   SET  PIX_SUPPLY   TO 0;
+.+1:   SET  PIX_VREF     TO 2.7;
+.+1:   SET  VDDA_PULLUP  TO 0; /* 0 with PCBpackage and 3.3 with PalletBoard */
+.+1:   SET  VSSA_PULLDOWN TO 3.3;
+.+1:   SET  VDD	TO 0;
+.+10ms:	RETURN;
+}
+WAVEFORM SetBiasesOn {
+0:	SET VDDA_PULLUP TO 3.3;
+.+10us: SET VSSA_PULLDOWN TO -5.0;
+.+10us:       SET PIX_SUPPLY   TO 3.3;
+.+10us: SET I_PIXEL_PAD  TO 1.75;
+.+1:    SET VHIGH_RST    TO 3.3;
+.+2:    SET VHIGH_MIM    TO 3.3;
+.+10us: SET PIX_VREF     TO 2.7;
+.+1:    SET VHIGH_ROW    TO 3.5;
+.+10us: SET VDDA_PULLUP  TO 3.3;   
+.+1:    SET VDD TO 3.3;
+.+1s: RETURN;
 }
 
+WAVEFORM wLightPulse {
+10ms:	 SET LED TO 0.2;
+.+10ms: RETURN;
+}
+WAVEFORM wbLightPulse {
+10ms:	 SET LED TO -0.01;
+.+10ms: RETURN;
+}
 /* Set and Reset waveforms */
 WAVEFORM wSetRowClock {
  0:                  SET ROW_SELECT  TO High;
@@ -131,59 +186,13 @@ WAVEFORM wLowSnapClock {
  0:                  SET SNAP        TO Low;
 }
 
-WAVEFORM wSetSampCaps1 {
- 0:                  SET CH1_A_SAMPLE TO High;
-                     SET CH1_B_SAMPLE TO High;
+WAVEFORM wSetLoGlo {
+ 0:                  SET LOGLO TO High;
 }
 
-WAVEFORM wLowSampCaps1 {
- 0:                  SET CH1_A_SAMPLE TO Low;
-                     SET CH1_B_SAMPLE TO Low;
+WAVEFORM wUnSetLoGlo {
+0:		SET	LOGLO	TO Low;
 }
-
-WAVEFORM wSetSampCaps2 {
- 0:                  SET CH2_A_SAMPLE TO High;
-                     SET CH2_B_SAMPLE TO High;
-}
-
-WAVEFORM wLowSampCaps2 {
- 0:                  SET CH2_A_SAMPLE TO Low;
-                     SET CH2_B_SAMPLE TO Low;
-}
-
-WAVEFORM wSetSampA1 {
- 0:                  SET CH1_A_SAMPLE TO High;
-}
-
-WAVEFORM wSetSampA2 {
- 0:                  SET CH2_A_SAMPLE TO High;
-}
-
-WAVEFORM wLowSampA1 {
- 0:                  SET CH1_A_SAMPLE TO Low;
-}
-
-WAVEFORM wLowSampA2 {
- 0:                  SET CH2_A_SAMPLE TO Low;
-}
-
-
-WAVEFORM wSetSampB1 {
- 0:                  SET CH1_B_SAMPLE TO High;
-}
-
-WAVEFORM wSetSampB2 {
- 0:                  SET CH2_B_SAMPLE TO High;
-}
-
-WAVEFORM wLowSampB1 {
- 0:                  SET CH1_B_SAMPLE TO Low;
-}
-
-WAVEFORM wLowSampB2 {
- 0:                  SET CH2_B_SAMPLE TO Low;
-}
-
 
 
 
@@ -225,6 +234,7 @@ WAVEFORM wTGPulse_RR {
 WAVEFORM wPulseYAddr {
  0:                  SET Y_ADDR_CLOCK TO High;
   .+ADRWidth:        SET Y_ADDR_CLOCK TO Low;
+.+ADRWidth:	     return;
 }
 
 WAVEFORM wPulseXAddr {
@@ -249,8 +259,12 @@ WAVEFORM wDelay1us {
 }
 
 WAVEFORM wDelay10ns {
+TICK: RETURN;
 }
 
+WAVEFORM wDelay100ns {
+100ns: RETURN;
+}
 WAVEFORM wDelay1ms {
  1ms:               RETURN;
 }
