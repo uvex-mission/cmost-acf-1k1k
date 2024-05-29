@@ -166,7 +166,7 @@ SEQUENCE ReadRowRR{
   wPulseXAddr(NbPixelb);
 
   /* Pulse the transfer gate to move charge to sense node, 1us wide */
-  wTGPulse(); 
+  wTGPulse_RR(); 
   wDelay1us(TG_delay);
   
   /* Reads the Signal Level */
