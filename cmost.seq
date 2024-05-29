@@ -104,7 +104,7 @@ wSetLoGlo();
 Sec(exptime);
 SetBiasesOn();
 wUnSetLoGlo();
-Sec(5);
+/*Sec(5);*/
  return;
 }
 
