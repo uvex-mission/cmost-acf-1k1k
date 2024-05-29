@@ -38,6 +38,10 @@ param LEDPulseWidth = 1 /* in ms */
 param ShutterEnable = 1
 param t_settle = 0
 param prv_ghostframe = 0
+param RST_delay = 10 /* in us */
+param TG_delay  = 10 /* in us */
+param MIM_delay = 10 /* in us */
+
 /* There are 4 parallel outputs per 1024 pixel block.  The x address       */
 /* increases to 256 and then resets, this should cover all of the columns. */
 
@@ -49,8 +53,8 @@ param prv_ghostframe = 0
  */
 SEQUENCE SetupCmos {
   AllLow(); /*That should happen before the VDDEN goes high and clocks are effectively going to the detector */
-if Start GOTO WaitForExpose();
-GOTO SetupCmos();
+  if Start GOTO WaitForExpose();
+  GOTO SetupCmos();
 }
 
 /* And we'll fall into the wait for exposure routine                      */
@@ -64,16 +68,16 @@ GOTO SetupCmos();
 
 SEQUENCE WaitForExpose {
   if Expose GOTO SelectReadoutMode();
- /* GlobalReset();*//* Apply Global Reset to the Array */          
+  /* GlobalReset();*//* Apply Global Reset to the Array */          
   GOTO WaitForExpose();
 }
 SEQUENCE SelectReadoutMode {
   if InitFrame    InitFrame_seq();
   if mode_RR      RR_seq(Expose);
-  if mode_RRHDR  RRHDR_seq(Expose);
+  if mode_RRHDR   RRHDR_seq(Expose);
   if mode_Guiding GuidingReadout(Expose);
-ResetExpose(1000); 
-GOTO WaitForExpose(); 
+  ResetExpose(1000); 
+  GOTO WaitForExpose(); 
 }
 
 /** ---------------------------------------------------------------------------
@@ -81,93 +85,96 @@ GOTO WaitForExpose();
  * @brief   A first ghost frame is readout to start the sequence in the correct rolling reset state
  */
 SEQUENCE InitFrame_seq {
- wLowSnapClock(); /* to address only ine row at a time */
- wLowRSTMIMClock();
- GlobalReset();
- prv_ghostframe++;
- RR_dCDS_Readout(); /*Reads the first frame but do no save it*/
- prv_ghostframe--;
+  wLowSnapClock(); /* to address only one row at a time */
+  wLowRSTMIMClock();
+  GlobalReset();
+  prv_ghostframe++;
+  RR_dCDS_Readout(); /*Reads the first frame but do no save it*/
+  prv_ghostframe--;
 return;
 }
  
 SEQUENCE RR_seq {
- if longexposure LowGlowExposure();
- if !longexposure MilliSec(exptime);
-/* Science Frame starts here */
- RR_dCDS_Readout();
+  if longexposure LowGlowExposure();
+  if !longexposure MilliSec(exptime);
+
+  /* Science Frame starts here */
+  RR_dCDS_Readout();
 return;
  }
  
 SEQUENCE LowGlowExposure {
-SetBiasesOff();
-wSetLoGlo();
-Sec(exptime);
-SetBiasesOn();
-wUnSetLoGlo();
-Sec(5);
- return;
+  SetBiasesOff();
+  wSetLoGlo();
+  Sec(exptime);
+  SetBiasesOn();
+  wUnSetLoGlo();
+  Sec(5);
+  return;
 }
 
 
 SEQUENCE GuidingReadout { /* RR dCDS */
-Expose--;
-wDelay1ms(exptime); /* Guiding Period in ms */
-wFrame();
-wResetXYAddr();/* Reset the X and Y addresses  */
-wDelay1us(1);
-wPulseYAddr();wDelay1us(5);
-/*wResetVGuiding();*/ /* Go to Fixed Guiding window*/
-/*wResetHGuiding();*/
-wPulseYAddr(BOI_start);
-ReadRowRR(RowGuiding);  /*Readsout N rows*/
-if Abort GOTO AbortSequence();
-return;
+  Expose--;
+  wDelay1ms(exptime); /* Guiding Period in ms */
+  wFrame();
+  wResetXYAddr();/* Reset the X and Y addresses  */
+  wDelay1us(1);
+  wPulseYAddr(); wDelay1us(5);
+  /*wResetVGuiding();*/ /* Go to Fixed Guiding window*/
+  /*wResetHGuiding();*/
+  wPulseYAddr(BOI_start);
+  ReadRowRR(RowGuiding);  /*Readsout N rows*/
+  if Abort GOTO AbortSequence();
+  return;
 }
 
 SEQUENCE AbortSequence {
-Abort--;
-ResetExpose(10000);
-GOTO WaitForExpose();
+  Abort--;
+  ResetExpose(10000);
+  GOTO WaitForExpose();
 }
 
 SEQUENCE ResetExpose {
-Expose--;
-return;
+  Expose--;
+  return;
 }
 
 SEQUENCE RR_dCDS_Readout {
-if !prv_ghostframe wFrame(); /*Do not save first image in frame buffer*/
- /* Now read the active pixels */
-  wResetXYAddr();/* Reset the X and Y addresses  */
-   wDelay1us(1);
-  wPulseYAddr();wDelay1us(5);
+  if !prv_ghostframe wFrame(); /*Do not save first image in frame buffer*/
+  /* Now read the active pixels */
+  wResetXYAddr(); /* Reset the X and Y addresses  */
+  wDelay1us(1);
+  wPulseYAddr(); 
+  wDelay1us(5);
   ReadRowRR(MaxRows);  /* Go through all the rows, each raw output has 256 columns associated */ 
  return;
  }
  
  
- SEQUENCE ReadRowRR{
- wLine();                   /* Trigger a new line */
+SEQUENCE ReadRowRR{
+  wLine();                   /* Trigger a new line */
 
- wSetRowClock();            /* Sets row clock - buffered sense node voltage driven on to column bus   */
- wDelay10ns(50);
-                  
+  wSetRowClock();            /* Sets row clock - buffered sense node voltage driven on to column bus   */
+  wDelay10ns(50);
+                    
   if GainHigh ResetRowHGandClamp(); /* This resets the row's sense node and sets to high gain mode, 1us width */
-  if GainLow ResetRowLGandClamp();  /* This resets the row's sense node and sets to low gain mode, 1us width  */
+  if GainLow  ResetRowLGandClamp(); /* This resets the row's sense node and sets to low gain mode, 1us width  */
 
+  /* Read Reference reset level */
+  ReadPixRaw(NbPixel);
+  wPulseXAddr(NbPixelb);
 
- wDelay1us(10);
- /* ReadPixRaw(256); */  /* Read Reference reset level */
-ReadPixRaw(NbPixel);
-wPulseXAddr(NbPixelb);
- wTGPulse();/* Pulse the transfer gate to move charge to sense node, 1us wide        */
- wDelay1us(1);
-/*ReadPixRaw(256); */        /* Reads the Signal Level */
-ReadPixRaw(NbPixel);
-wPulseXAddr(NbPixelb);
+  /* Pulse the transfer gate to move charge to sense node, 1us wide */
+  wTGPulse(); 
+  wDelay1us(TG_delay);
+  
+  /* Reads the Signal Level */
+  ReadPixRaw(NbPixel);
+  wPulseXAddr(NbPixelb);
 
-RollingReset(); /*Reset the PPD*/ 
-wLowRowClock(); 
+  RollingReset(); /*Reset the PPD*/ 
+  wLowRowClock(); 
  
   /* The FPGA will need to handle the roll over and enable the next Y Block */
   wPulseYAddr();    /* FPGA controls DV_IN[], Y_ENABLE_BLOCK[], and Y_LATCH through counter/FPGA    */
@@ -182,52 +189,50 @@ wLowRowClock();
  */
  
  SEQUENCE RRHDR_seq {
- if longexposure LowGlowExposure();
- if !longexposure MilliSec(exptime);
-/* Science Frame starts here */
- RR_dCDS_Readout_HDR();
-return;
+  if longexposure LowGlowExposure();
+  if !longexposure MilliSec(exptime);
+  /* Science Frame starts here */
+  RR_dCDS_Readout_HDR();
+  return;
  }
  
 
-  SEQUENCE RR_dCDS_Readout_HDR {
-if !prv_ghostframe wFrame();
- /* Now read the active pixels */
+SEQUENCE RR_dCDS_Readout_HDR {
+  if !prv_ghostframe wFrame();
+  /* Now read the active pixels */
   wResetXYAddr();/* Reset the X and Y addresses  */
-   wDelay1us(1);
+  wDelay1us(1);
   wPulseYAddr();wDelay1us(5);
   ReadRowRR_HDR(MaxRows);  /* Go through all the rows, each raw output has 256 columns associated */ 
- return;
+  return;
  }
  
  
  SEQUENCE ReadRowRR_HDR{
- wLine();                   /* Trigger a new line */
+  wLine();                   /* Trigger a new line */
 
- wSetRowClock();            /* Sets row clock - buffered sense node voltage driven on to column bus   */
- wDelay10ns(50);
-                  
-  ResetRowLGandClamp(); /* This resets the row's sense node and sets to high gain mode, 1us width */
-  wDelay1us(10);
- ReadPixRaw_Reset(256);  /* Read Reference reset level in Low gain mode */
-/*  ReadPixRawRL(256);*/
-  wLowMIMClock(); 
-  wDelay1us(10);
+  wSetRowClock();            /* Sets row clock - buffered sense node voltage driven on to column bus   */
+  wDelay10ns(50);
+                    
+  ResetRowLGandClamp();   /* This resets the row's sense node and sets to low gain mode, 1us width */
+                          /* Ends with RST_delay */
+  ReadPixRaw_Reset(256);  /* Read Reference reset level in Low gain mode */
+  
+  wLowMIMClock();         /* Switch to High gain mode */
+  wDelay1us(MIM_delay);   
   ReadPixRaw_Reset(256);  /* Read Reference reset level in High gain mode */ 
-/*  ReadPixRawRH(256);*/
- wTGPulse_RR();/* Pulse the transfer gate to move charge to sense node, 10us wide        */
- wDelay1us(10);
- ReadPixRaw(256);         /* Reads the Signal Level in High Gain Mode*/
-/* ReadPixRawLH(256);*/
- wSetMIMClock();
- wTGPulse_RR();   /*  Push the charges again!!! */
- wDelay1us(10);
- 
- ReadPixRaw(256);         /* Reads the Signal Level in Low Gain Mode*/
-/* ReadPixRawLL(256);*/
- /* RollingReset(); */
- wLowRowClock(); 
- 
+  
+  wTGPulse_RR();          /* Pulse the transfer gate to move charge to sense node, TG_delay wide */
+  wDelay1us(TG_delay);
+  ReadPixRaw(256);        /* Reads the Signal Level in High Gain Mode*/
+  
+  wSetMIMClock();
+  wTGPulse_RR();          /*  Push the charges again; TG_delay wide */
+  wDelay1us(TG_delay);
+  ReadPixRaw(256);        /* Reads the Signal Level in Low Gain Mode */
+  
+  wLowRowClock(); 
+  
   /* The FPGA will need to handle the roll over and enable the next Y Block */
   wPulseYAddr();    /* FPGA controls DV_IN[], Y_ENABLE_BLOCK[], and Y_LATCH through counter/FPGA    */
   wDelay1us();      /* Delay between Y Latch and the reset of the first pixel which happens on next iteration */
@@ -236,48 +241,48 @@ if !prv_ghostframe wFrame();
  
 
 SEQUENCE ReadPixRaw {
-wPulseXAddr();
-wDelay10ns(t_settle);
-wPixel();
-wDelay10ns(TPixel_hold);
-return;
+  wPulseXAddr();
+  wDelay10ns(t_settle);
+  wPixel();
+  wDelay10ns(TPixel_hold);
+  return;
 }
 
 SEQUENCE ReadPixRaw_Reset {
-wPulseXAddr();
-wPixel();
-wDelay10ns(TPixel_hold);
-return;
+  wPulseXAddr();
+  wPixel();
+  wDelay10ns(TPixel_hold);
+  return;
 }
 
 SEQUENCE ReadPixRawRL {
-wPixel();
-wPulseXAddr();
-wDelay10ns(10);
-return;
+  wPixel();
+  wPulseXAddr();
+  wDelay10ns(10);
+  return;
 }
 SEQUENCE ReadPixRawRH {
-wPixel();
-wPulseXAddr();
-wDelay10ns(86);
-return;
+  wPixel();
+  wPulseXAddr();
+  wDelay10ns(86);
+  return;
 }
 SEQUENCE ReadPixRawLH {
-wPixel();
-wPulseXAddr();
-wDelay10ns(86);
-return;
+  wPixel();
+  wPulseXAddr();
+  wDelay10ns(86);
+  return;
 }
 SEQUENCE ReadPixRawLL {
-wPixel();
-wPulseXAddr();
-wDelay10ns(10);
-return;
+  wPixel();
+  wPulseXAddr();
+  wDelay10ns(10);
+  return;
 }
 SEQUENCE ReadPixRaw_Blank {
-wPulseXAddr();
-wDelay10ns(TPixel_hold);
-return;
+  wPulseXAddr();
+  wDelay10ns(TPixel_hold);
+  return;
 }
 
 SEQUENCE ResetRowHGandClamp {
@@ -285,13 +290,13 @@ SEQUENCE ResetRowHGandClamp {
   /* Then the Reset clock goes low and MIM goes low for high gain */ 
   wSetResetClock();
   wSetMIMClock();
-  wDelay1us(4);  /* Pulse width on Reset clock is 2us nominal */
-      ADClamp();     /* Do a clamp for each line */
-      wDelay1us(2); /* Hold for 2 us */
-      ADClamp_();    /* Unclamp the ADCs         */
+  wDelay1us(4); /* Pulse width on Reset clock is 2us nominal */
+      ADClamp();        /* Do a clamp for each line */
+      wDelay1us(2);     /* Hold for 2 us */
+      ADClamp_();       /* Unclamp the ADCs */
   wLowResetClock();
   wLowMIMClock();
-  wDelay1us(2);
+  wDelay1us(RST_delay); /* Settling time from any reset effects */
   return;
 }
 
@@ -305,7 +310,7 @@ SEQUENCE ResetRowLGandClamp {
        wDelay1us(2); /* Hold for 2 us */
        ADClamp_();    /* Unclamp the ADCs         */
   wLowResetClock();
-  wDelay1us(2);
+  wDelay1us(RST_delay);
   return;
 }
 
@@ -360,12 +365,12 @@ return;
 }
 
 SEQUENCE ArchonClamp {
- wDelay1us();  
- ADClamp();     
- wDelay1us(5); 
- ADClamp_();
- wDelay1us(5); 
- return;
+  wDelay1us();  
+  ADClamp();     
+  wDelay1us(5); 
+  ADClamp_();
+  wDelay1us(5); 
+  return;
 }
 
 SEQUENCE MilliSec {
@@ -395,14 +400,14 @@ SEQUENCE AllLow {
 }
 
 SEQUENCE LightPulse {
-if LPb CounterLightPulseDuration();
-LPb--;
-wbLightPulse();
-return;
+  if LPb CounterLightPulseDuration();
+  LPb--;
+  wbLightPulse();
+  return;
 }
 
 SEQUENCE CounterLightPulseDuration {
-wLightPulse();
-Sec(LEDPulseWidth);
-return;
+  wLightPulse();
+  Sec(LEDPulseWidth);
+  return;
 }
