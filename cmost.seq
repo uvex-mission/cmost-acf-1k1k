@@ -71,6 +71,14 @@ SEQUENCE WaitForExpose {
   /* GlobalReset();*//* Apply Global Reset to the Array */          
   GOTO WaitForExpose();
 }
+
+SEQUENCE Expose {
+  
+
+
+}
+
+
 SEQUENCE SelectReadoutMode {
   if InitFrame    InitFrame_seq();
   if mode_RR      RR_seq(Expose);
@@ -106,6 +114,9 @@ return;
 SEQUENCE LowGlowExposure {
   /* SetBiasesOff(); */
   /* wSetLoGlo();    */
+
+  wPulseYAddr(512) /* Pulse Y ADDR to rest row address pointer on specific row */
+
   Sec(exptime);
   /* SetBiasesOn();  */
   /* wUnSetLoGlo();  */
@@ -162,17 +173,15 @@ SEQUENCE ReadRowRR{
   if GainLow  ResetRowLGandClamp(); /* This resets the row's sense node and sets to low gain mode, 1us width  */
 
   /* Read Reference reset level */
-  ReadPixRaw(NbPixel);
-  wPulseXAddr(NbPixelb);
+  ReadPixRaw(256);
 
   /* Pulse the transfer gate to move charge to sense node, 1us wide */
   wTGPulse_RR(); 
   wDelay1us(TG_delay);
   
   /* Reads the Signal Level */
-  ReadPixRaw(NbPixel);
-  wPulseXAddr(NbPixelb);
-
+  ReadPixRaw(256);
+  
   /* RollingReset(); */ /*Reset the PPD*/ /* Candidate for causing different behaviour between low/high gain and HDR modes */
   wLowRowClock(); 
  
