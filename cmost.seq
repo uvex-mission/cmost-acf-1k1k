@@ -104,12 +104,12 @@ return;
  }
  
 SEQUENCE LowGlowExposure {
-  SetBiasesOff();
-  wSetLoGlo();
+  /* SetBiasesOff(); */
+  /* wSetLoGlo();    */
   Sec(exptime);
-  SetBiasesOn();
-  wUnSetLoGlo();
-  Sec(5);
+  /* SetBiasesOn();  */
+  /* wUnSetLoGlo();  */
+  /* Sec(5);         */
   return;
 }
 
@@ -173,7 +173,7 @@ SEQUENCE ReadRowRR{
   ReadPixRaw(NbPixel);
   wPulseXAddr(NbPixelb);
 
-  RollingReset(); /*Reset the PPD*/ 
+  /* RollingReset(); */ /*Reset the PPD*/ /* Candidate for causing different behaviour between low/high gain and HDR modes */
   wLowRowClock(); 
  
   /* The FPGA will need to handle the roll over and enable the next Y Block */
