@@ -72,13 +72,6 @@ SEQUENCE WaitForExpose {
   GOTO WaitForExpose();
 }
 
-SEQUENCE Expose {
-  
-
-
-}
-
-
 SEQUENCE SelectReadoutMode {
   if InitFrame    InitFrame_seq();
   if mode_RR      RR_seq(Expose);
