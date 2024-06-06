@@ -108,7 +108,12 @@ SEQUENCE LowGlowExposure {
   /* SetBiasesOff(); */
   /* wSetLoGlo();    */
 
-  wPulseYAddr(512) /* Pulse Y ADDR to rest row address pointer on specific row */
+  /* wPulseYAddr(512) */ /* Pulse Y ADDR to rest row address pointer on specific row */
+  
+  wResetXYAddr();
+  wDelay1us(1);
+  wPulseYAddr(); 
+
 
   Sec(exptime);
   /* SetBiasesOn();  */
