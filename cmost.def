@@ -35,7 +35,7 @@
 #define _RAW_SAMPLES           25600
 #define _RAW_SELECT               0 /* AD channel for raw data capture, 0-15 */
 
-#define _FIRST_RESET_SAMPLE       40 /* 40*/
+#define _FIRST_RESET_SAMPLE       40  /* 40*/
 #define _LAST_RESET_SAMPLE        139 /*48 #eval _FIRST_RESET_SAMPLE + _NUM_CDS_SAMPLES*/
 #define _FIRST_VIDEO_SAMPLE       141 /* 50 #eval _LAST_RESET_SAMPLE + 1*/
 #define _LAST_VIDEO_SAMPLE        141 /* 50 _FIRST_VIDEO_SAMPLE*/

@@ -30,13 +30,13 @@ param GainHigh=1
 param numsamples=_NUM_CDS_SAMPLES
 param NbPixel=256
 param NbPixelb=0
-param TPixel_hold=138 /* for 700kHz pixel  */
+param TPixel_hold=138 /* 138 for 700kHz pixel - t_settle = 0  */
 param longexposure=0
 param LPa=3 /* frame n for which the pulse happens*/
 param LPb=1
 param LEDPulseWidth = 1 /* in ms */
 param ShutterEnable = 1
-param t_settle = 0
+param t_settle = 0   /* 262 for 250kHz pixel - TPixel_hold=138 */
 param prv_ghostframe = 0
 param RST_delay = 10 /* in us */
 param TG_delay  = 10 /* in us */
@@ -90,7 +90,8 @@ SEQUENCE InitFrame_seq {
   wLowRSTMIMClock();
   GlobalReset();
   prv_ghostframe++;
-  RR_dCDS_Readout(); /*Reads the first frame but do no save it*/
+if mode_RR  RR_dCDS_Readout(); /*Reads the first frame but do no save it*/
+if mode_RRHDR RR_dCDS_Readout_HDR(); /*Reads the first frame but do not save it */
   prv_ghostframe--;
 return;
 }
@@ -106,19 +107,19 @@ return;
  
 SEQUENCE LowGlowExposure {
   /* SetBiasesOff(); */
-  /* wSetLoGlo();    */
+  /* wSetLoGlo(); */
 
   /* wPulseYAddr(512) */ /* Pulse Y ADDR to rest row address pointer on specific row */
   
-  wResetXYAddr();
-  wDelay1us(1);
-  wPulseYAddr(); 
+  /* wResetXYAddr(); */
+  /* wDelay1us(1); */
+  /* wPulseYAddr();*/  
 
 
   Sec(exptime);
   /* SetBiasesOn();  */
   /* wUnSetLoGlo();  */
-  /* Sec(5);         */
+  /* Sec(5);         */    
   return;
 }
 
@@ -250,6 +251,7 @@ SEQUENCE RR_dCDS_Readout_HDR {
 SEQUENCE ReadPixRaw {
   wPulseXAddr();
   wDelay10ns(t_settle);
+  /* wDelay1ms(t_settle); */
   wPixel();
   wDelay10ns(TPixel_hold);
   return;
