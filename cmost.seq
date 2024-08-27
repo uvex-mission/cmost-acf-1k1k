@@ -151,7 +151,7 @@ SEQUENCE ResetExpose {
 }
 
 SEQUENCE RR_dCDS_Readout {
-  if !prv_ghostframe wFrame(); /*Do not save first image in frame buffer*/
+  wFrame(); /*Do not save first image in frame buffer*/
   /* Now read the active pixels */
   wResetXYAddr(); /* Reset the X and Y addresses  */
   wDelay1us(1);
@@ -217,7 +217,7 @@ SEQUENCE RR_dCDS_Readout_HDR {
  
  
  SEQUENCE ReadRowRR_HDR{
-  wLine();                   /* Trigger a new line */
+ if !prv_ghostframe  wLine();                   /* Trigger a new line */
 
   wSetRowClock();            /* Sets row clock - buffered sense node voltage driven on to column bus   */
   wDelay10ns(50);
@@ -252,7 +252,7 @@ SEQUENCE ReadPixRaw {
   wPulseXAddr();
   wDelay10ns(t_settle);
   /* wDelay1ms(t_settle); */
-  wPixel();
+if !prv_ghostframe  wPixel();
   wDelay10ns(TPixel_hold);
   return;
 }
