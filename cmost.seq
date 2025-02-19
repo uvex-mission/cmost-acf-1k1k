@@ -53,9 +53,15 @@ param MIM_delay = 10 /* in us */
  */
 SEQUENCE SetupCmos {
   AllLow(); /*That should happen before the VDDEN goes high and clocks are effectively going to the detector */
-  if Start GOTO WaitForExpose();
+  if Start GOTO Initialization();
   GOTO SetupCmos();
 }
+
+SEQUENCE Initialization {
+GlobalReset();
+GOTO WaitForExpose();
+}
+
 
 /* And we'll fall into the wait for exposure routine                      */
 /* We will be doing a rolling shutter */
@@ -86,9 +92,9 @@ SEQUENCE SelectReadoutMode {
  * @brief   A first ghost frame is readout to start the sequence in the correct rolling reset state
  */
 SEQUENCE InitFrame_seq {
-  wLowSnapClock(); /* to address only one row at a time */
-  wLowRSTMIMClock();
-  GlobalReset();
+/*  wLowSnapClock();*/ /* to address only one row at a time */
+/*  wLowRSTMIMClock();*/
+ /* GlobalReset();*/
   prv_ghostframe++;
 if mode_RR  RR_dCDS_Readout(); /*Reads the first frame but do no save it*/
 if mode_RRHDR RR_dCDS_Readout_HDR(); /*Reads the first frame but do not save it */
@@ -98,7 +104,7 @@ return;
  
 SEQUENCE RR_seq {
   if longexposure LowGlowExposure();
-  if !longexposure MilliSec(exptime);
+  if !longexposure Sec(exptime);
 
   /* Science Frame starts here */
   RR_dCDS_Readout();

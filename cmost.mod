@@ -1,7 +1,7 @@
 /** -*- C -*- **/
 
 /* Nominal values for the biases */
-#define PVREF          2.7
+#define PVREF          2.8
 #define CLOFFSET       0.0 /*2.8*/
 #define CLSELECT       0.0  
 #define SASELECT       0.0  
@@ -14,9 +14,9 @@
 #define VLOWTG         -0.5  /* negative */
 #define VHIGHTG        2.2
 #define VLOWROW        0.0
-#define VHIGHROW       3.5  /* nomianl: 3.3. higher than datasheet because of ROIX issue 4.5V with BSI 1-7-3 */
+#define VHIGHROW       4.5 /*3.5*/  /* nomianl: 3.3. higher than datasheet because of ROIX issue 4.5V with BSI 1-7-3 */
 #define BWLIMIT        0.0  
-#define IPIXPAD        1.75
+#define IPIXPAD        1.8
 #define ICDSPAD        0.0 /*1.7*/
 #define IBUFPAD        0.0 /*0.7*/
 #define PIXSUPPLY      3.3
